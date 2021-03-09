@@ -77,13 +77,25 @@ CORS_ORIGIN_ALLOW_ALL=True
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+       'default': {
+       'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'instagram_app', # example - blog_data
+        'USER': 'instagram',
+        'PASSWORD': '123',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+        'charset': 'utf8mb4',
+        'use_unicode': True, },
+    },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -126,4 +138,4 @@ MEDIA_URL = '/media/'
 STATICFILES_DIRS = [
    os.path.join(BASE_DIR,'static')
 ]
-MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+MEDIA_ROOT = os.path.join(BASE_DIR,MEDIA_URL)

@@ -1,34 +1,19 @@
 from django.shortcuts import render
-from rest_framework import generics
-from instagram_profile.serializers import ProfileListSerializer, ImageSerializer, PostSerializer
-from instagram_profile.models import Profile, Image,Post
-from rest_framework.views import APIView
-from rest_framework.response import Response
-# Create your views here.
-class ListProfile(generics.ListCreateAPIView):
-    serializer_class = ProfileListSerializer
-    queryset = Profile.objects.all()
+from instagram_profile.models import Profile,Image,Post
 
 
-
-class DetailProfile(generics.RetrieveUpdateDestroyAPIView):
-    queryset=Profile.objects.all()
-    serializer_class = ProfileListSerializer
-    lookup_url_kwarg='id'
+def index(request):
+    context={}
+    return render(request,"base.html",context=context)
 
 
-class PostDetail(generics.ListCreateAPIView):
-    #queryset = Post.objects.all()
-    serializer_class = PostSerializer
+def post(request,profile_id,post_id):
+    image_to_post = Image.objects.filter(post__id=post_id,post__profile__id=profile_id)
+    post = Post.objects.get(id=post_id)
+    context={"image_to_post":image_to_post,"post":post}
+    return render(request,"post/post.html",context)
 
-    def get_queryset(self):
-        id = self.kwargs['id']
-        return Post.objects.filter(user__id=id)
-
-
-class ImageDetail(generics.ListCreateAPIView):
-    serializer_class = ImageSerializer
-
-    def get_queryset(self):
-        id = self.kwargs['id']
-        return Image.objects.filter(post__id=id)
+def profile(request,pk):
+    profile = Profile.objects.get(id=pk)
+    context = {"profile":profile}
+    return render(request,"profile/profile.html",context=context)
