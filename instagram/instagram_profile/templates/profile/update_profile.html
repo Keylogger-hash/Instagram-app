@@ -1,0 +1,14 @@
+{%extends 'base.html'%}
+{%block content%}
+{% if request.user.id == profile.id %}
+   <form action="" method="POST" enctype="multipart/form-data">
+     {%csrf_token%}
+     <label for="id_username">
+     <input type="text" value="{{request.user.username}}" name="username" id="id_username">
+     {{form.as_p}}
+     <button type="submit">Update</button>
+   </form>
+{%else%}
+   <p>You are not allowed to see this page<p>
+{%endif%}
+{%endblock%}

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,7 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'instagram_profile',
-    'corsheaders',
+    'imagekit',
+    'channels_redis',
+    'django_filters',
     'rest_framework'
 ]
 
@@ -72,7 +76,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'instagram.wsgi.application'
+ASGI_APPLICATION = 'instagram.asgi.application'
 CORS_ORIGIN_ALLOW_ALL=True
+
+CHANNEL_LAYERS = {
+    'default':{
+    'BACKEND':'channels_redis.core.RedisChannelLayer',
+    'CONFIG':{
+           "hosts":[('127.0.0.1',6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
@@ -138,4 +152,4 @@ MEDIA_URL = '/media/'
 STATICFILES_DIRS = [
    os.path.join(BASE_DIR,'static')
 ]
-MEDIA_ROOT = os.path.join(BASE_DIR,MEDIA_URL)
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')

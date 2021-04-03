@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Inbox</h1>
+{% for room in inbox %}
+<a href="{% url 'chat' room.label %}"><img src="/media/{{room.reciever.profile.image_pic}}" width="100" height="100"></a>
+<p>{{room.reciever}}</p>
+<p>Last message:</p>
+<p>{{room.get_last_message}}</p>
+<hr>
+{% endfor %}
+{%endblock%}

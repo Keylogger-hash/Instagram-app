@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Chat</h1>
+<ul>
+{% for m in message %}
+{{m.sender}}
+  <li>{{m.text}}</li>
+{% endfor %}
+</ul>
+<textarea id="chat-log" cols="100" rows="20"></textarea><br>
+<textarea id="chat-message-input" cols="35" rows="6"></textarea>
+<button id="chat-message-submit">submit</button>
+
+<script>
+const label = "{{room.label|escapejs}}"
+const socket = new WebSocket(
+  'ws://'+window.location.host+'/ws/chat/'+label+'/'
+);
+console.log('ws://'+window.location.host+'/ws/chat/'+label+'/')
+socket.onmessage = function(e) {
+  var data = JSON.parse(e.data);
+  var message = data["message"]
+  document.querySelector("#chat-log").value += message+'\n'
+  console.log(message)
+}
+socket.onclose = function(e) {
+  console.error('chat socket connection close')
+}
+document.querySelector('#chat-message-input').focus()
+document.querySelector('#chat-message-input').onkeyup = function(e) {
+  if (e.keyCode == '13') {
+    document.querySelector('#chat-message-submit').click()
+  }
+}
+document.querySelector('#chat-message-submit').onclick = function(e) {
+  const messageInputDOM = document.querySelector('#chat-message-input')
+  const message = messageInputDOM.value;
+  socket.send(JSON.stringify({
+    'message':message
+  }))
+  messageInputDOM.value = '';
+}
+</script>
+{%endblock%}

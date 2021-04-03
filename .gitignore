@@ -1,0 +1,5 @@
+**/*.jpg
+**/*.jpeg
+__pycache__/
+plan_to_write.txt
+Sheme_instagram.vsdx

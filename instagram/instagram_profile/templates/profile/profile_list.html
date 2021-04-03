@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<br>
+{% for profile in profile_to_list %}
+   <a href="{% url 'profile' profile.id%}"><p><strong>{{profile.user.username}}<strong><p></a>
+   <img src="/media/{{profile.image_pic}}" width="100" height="100">
+   <hr>
+{%endfor%}
+{% endblock %}

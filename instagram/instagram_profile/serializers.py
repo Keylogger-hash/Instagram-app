@@ -23,11 +23,9 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class ImageSerializer(serializers.ModelSerializer):
-    post = PostSerializer()
     class Meta:
-        fields="__all__"
+        fields=["image_url"]
         model = Image
-
 
 
 

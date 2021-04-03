@@ -1,7 +1,143 @@
 {%extends 'base.html'%}
+{% load static %}
 {% block content %}
-{% for image in image_to_post %}
-  <img src="/media/{{image.image_url}}" width="500" height="500">
-{% endfor%}
+<p><strong id="current"></strong>/<strong id="all"></strong></p>
+<img src="/media/{{post.first_image}}" id="post-image" width="300" height="300">
+<button id="prev">Prev</button>
+<button id="next">Next</button>
+
 <p>{{post.text}}</p>
+<div id="like-section">
+  <p>Like: <strong id="like-count">{{post.get_count_of_likes}}</strong></p>
+  <form id="like-form">
+    {%if is_liked%}
+    <button type="submit" id="like" class="like_" name="post_id" value="{{post.id}}">Unlike</button>
+    {%else%}
+    <button type="submit" id="like" class="unlike_" name="post_id" value="{{post.id}}">Like</button>
+  {%endif%}
+  </form>
+</div>
+
+<h2>Comments</h2> <div id="count_comments">{{post.get_count_of_comments}}</div><hr>
+<div id="my_comments">
+  {% for comment in comments %}
+  <p>
+  <img src="/media/{{comment.user.profile.image_pic}}" width="50" height="50"></img>
+  <strong>{{comment.user.username}}</strong> {{comment.text}}
+  </p>
+  {%endfor%}
+</div>
+  <form id="form-comments">
+    {%csrf_token%}
+    <textarea cols="60" rows="7" id="id_comment_text"></textarea>
+    <input type='hidden' id='post_id' name='post' value='{{post.id}}'>
+    <input type="submit" value="Add comment">
+  </form>
+<script>
+$(document).ready(function(){
+  $('#like-form').submit(function(e){
+    event.preventDefault();
+    console.log("from jquery section")
+    var pk = $('#like').val();
+    $.ajax({
+      type:'post',
+      url:"{%url 'add_like' %}",
+      data:{
+        'post_id':pk,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      dataType:'json',
+      success:function(response) {
+        if ($("#like").attr('class')==="like_") {
+          $("#like").html("Like").removeClass("like_").addClass("unlike_")
+        } else {
+          $("#like").html("Unlike").removeClass("unlike_").addClass("like_")
+        }
+        $("#like-count").html(response["total_likes"])
+      },
+      error:function(response,e){
+        console.log(response.responseText)
+      }
+    })
+  })
+})
+</script>
+
+<script>
+$(document).ready(function(){
+  $("#form-comments").submit(function(e) {
+    e.preventDefault();
+    var comment_text = $("#id_comment_text").val();
+    var post_id = $("#post_id").val();
+    $.ajax({
+      type:'POST',
+      url:"{%url 'comments' %}",
+      data:{
+        "comment_text":comment_text,
+        "post_id":post_id,
+        csrfmiddlewaretoken:'{{csrf_token}}'
+      },
+      success: function(response) {
+        $('#form-comments').trigger('reset');
+        $("#comment_text").focus();
+
+        $("#my_comments").append(
+          `<p>
+          <img src="${response["image_pic"]}" width="50" height="50"></img>
+          <strong>${response["commenter_info"]["username"]}</strong> ${response["commenter_info"]["comment_text"]}
+          </p>`
+        )
+      }
+    })
+
+  })
+})
+</script>
+<script>
+let counter = -1;
+let current=1
+
+fetch("http://127.0.0.1:8000/api/image/{{post.profile.id}}/{{post.id}}")
+  .then((response) => {
+    return response.json();
+  })
+  .then((data)=>{
+
+      document.getElementById("all").innerHTML=data.length+1
+      document.getElementById("current").innerHTML=current;
+      document.getElementById('next').addEventListener('click',function() {
+        if (counter===data.length-1) {
+          counter=data.length-1
+          if (current===data.length+1) {
+            current=data.length+1
+            document.getElementById("current").innerHTML=current
+          } else {
+            document.getElementById("current").innerHTML=current
+            current++
+          }
+        }  else {
+          counter++
+          current++
+          document.getElementById("current").innerHTML=current
+          document.getElementById('post-image').setAttribute('src',data[counter].image_url)
+        }
+      })
+      document.getElementById('prev').addEventListener('click',function() {
+        if (counter===0) {
+          counter=-1
+          document.getElementById('post-image').setAttribute('src',"/media/{{post.first_image}}")
+          if (current===2) {
+            current=1
+            document.getElementById("current").innerHTML=current
+          }
+        } else if (counter!=-1){
+          counter--
+          current--
+          document.getElementById("current").innerHTML=current
+          document.getElementById('post-image').setAttribute('src',data[counter].image_url)
+        }
+      })
+  })
+
+</script>
 {% endblock %}
