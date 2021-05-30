@@ -1,7 +1,0 @@
-{% extends 'base.html' %}
-{% block content %}
-Followers:
-{% for fol in followers %}
-<p><img src="/media/{{fol.image_pic}}" width="100" height="100"><a href="{%url 'profile' fol.id%}">{{fol.user.username}}</a></p>
-{% endfor %}
-{% endblock %}

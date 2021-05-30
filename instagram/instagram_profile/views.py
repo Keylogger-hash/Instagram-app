@@ -1,58 +1,97 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth.models import User
-from instagram_profile.models import Profile,Image,Post, Comment, Like,Room
+from instagram_profile.models import Profile,Image,Post, Comment, Like
+from instagram_profile.forms import AddPostForm,UpdateProfileForm,UsernameForm
 from instagram_profile.serializers import ImageSerializer
-from instagram_profile.forms import SignUpForm, LoginForm,AddPostForm,UpdateProfileForm
 
 from django.db.models import Q
-from django.contrib.auth import login,authenticate
+
 from django.contrib.auth.decorators import login_required
-# from django.core import serializers
-# from django.http import JsonResponse
+
+#for ajax
 from annoying.decorators import ajax_request
 from rest_framework import generics
 
+from django.http import HttpResponse
+
+from django.urls import reverse
+from django.http import HttpResponseRedirect
+#Views
+from django.views import View
+from django.views.generic import DetailView
+from django.views.generic.edit import UpdateView
+from django.views.generic.list import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 def index(request):
     if request.user.is_authenticated:
-        return redirect("feed")
+        return HttpResponseRedirect(reverse("instagram_profile:feed"))
     else:
-        return redirect("login")
+        return HttpResponseRedirect(reverse("accounts:login"))
+#
 
-@login_required
-def update_profile(request,id):
-    profile=get_object_or_404(Profile,pk=id)
-    user = User.objects.get(pk=id)
-    if request.method == 'GET':
-        form = UpdateProfileForm(instance=profile)
-        context = {"form":form,"profile":profile}
-        return render(request,"profile/update_profile.html",context=context)
-    elif request.method == 'POST':
-        form = UpdateProfileForm(request.POST,request.FILES,instance=profile)
-        username = request.POST.get('username')
+class UpdateProfileView(LoginRequiredMixin,UpdateView):
+    model = Profile
+    second_model = User
+    form_class = UpdateProfileForm
+    second_form_class = UsernameForm
+    pk_url_kwarg = 'pk'
+    template_name = "instagram_profile/profile/update_profile.html"
+
+    def get_success_url(self):
+        pk = self.kwargs.get('pk')
+        return HttpResponseRedirect(reverse("instagram_profile:profile",args=(pk,)))
+
+    def get_context_data(self,**kwargs):
+        context = super(UpdateProfileView,self).get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        profile = get_object_or_404(self.model,id=int(pk))
+        user = get_object_or_404(self.second_model,id=int(pk))
+        context['profile_form'] = self.form_class(instance=profile)
+        context['username_form'] = self.second_form_class(instance=user)
+        return context
+
+    def form_invalid(self,profile_form,username_form,*args,**kwargs):
+        return self.render_to_response(self.get_context_data({'profile_form':profile_form,'username_form':username_form}))
+
+    def post(self,request,*args,**kwargs):
+        pk = self.kwargs.get('pk')
+        profile = get_object_or_404(self.model,id=int(pk))
+        user = get_object_or_404(self.second_model,id=int(pk))
+        profile_form = self.form_class(instance=profile,data=request.POST,files=request.FILES)
+        username_form = self.second_form_class(instance=user,data=request.POST)
+        print(profile_form.is_valid())
+        print(username_form.is_valid())
+        if profile_form.is_valid() and username_form.is_valid():
+            profile_form.save()
+            username_form.save()
+            return self.get_success_url()
+        else:
+            return self.form_invalid(profile_form,username_form)
+
+
+class AddPostView(View,LoginRequiredMixin):
+    template_name = "instagram_profile/post/add_post.html"
+    form_class = AddPostForm
+
+    def get(self,request,*args,**kwargs):
+        form = self.form_class()
+        context = {"form":form}
+        return render(request,self.template_name,context=context)
+
+    def post(self,request,*args,**kwargs):
+        profile = self.request.user.profile
+        form = self.form_class(data=request.POST,files=request.FILES)
         if form.is_valid():
-            form.save()
-        if user.username!=username:
-            user.username = username
-            user.save()
-        return redirect("profile",pk=id)
-
-@login_required
-def add_post(request):
-    if request.method=='GET':
-        form = AddPostForm()
-        context={"form":form}
-        return render(request,"post/add_post.html",context)
-    elif request.method=='POST':
-        user = request.user
-        first_image = request.FILES.get('first_image')
-        text = request.POST.get('text')
-        post = Post(profile=user.profile,text=text,first_image=first_image)
-        post.save()
-        post = Post.objects.last()
-        for im in request.FILES.getlist('attachments'):
-            print(im)
-            Image.objects.create(post_id=post.id,image_url=im)
-        return redirect("post/1/1")
+            text = form.cleaned_data["text"]
+            first_image = form.cleaned_data["first_image"]
+            attachments = self.request.FILES.getlist("attachments")
+            print(attachments)
+            post = Post(profile=profile,text=text,first_image=first_image)
+            post.save()
+            for im in attachments:
+                Image.objects.create(post_id=post.id,image_url=im)
+            return HttpResponseRedirect(reverse('instagram_profile:post',args=(profile.id,post.id)))
 
 
 class ImageView(generics.ListAPIView):
@@ -64,19 +103,26 @@ class ImageView(generics.ListAPIView):
         queryset = Image.objects.filter(post__id=post_id,post__profile__id=profile_id)
         return queryset
 
+class PostView(DetailView):
+    model = Post
+    template_name = "instagram_profile/post/post.html"
+    context_object_name = "post"
 
+    def get_object(self,**kwargs):
+        post_id = self.kwargs.get('post_id')
+        return Post.objects.get(id=post_id)
 
-def post(request,profile_id,post_id):
-    post = Post.objects.get(id=post_id)
-    comments = Comment.objects.filter(post__id=post_id,post__profile__id=profile_id)
-    liked = False
-    print(post_id)
-    print(request.user)
-    if Like.objects.filter(user=request.user.id,post__id=post_id).exists():
-        liked=True
-    print(liked)
-    context={"post":post,"comments":comments,"is_liked":liked}
-    return render(request,"post/post.html",context)
+    def get_context_data(self,**kwargs):
+        context = super(PostView,self).get_context_data(**kwargs)
+        post_id = self.kwargs.get('post_id')
+        profile_id = self.kwargs.get('profile_id')
+        comments = Comment.objects.filter(post__id=post_id,post__profile__id=profile_id)
+        liked = False
+        if Like.objects.filter(user=self.request.user.id,post__id=post_id).exists():
+            liked = True
+        context["is_liked"] = liked
+        context["comments"] = comments
+        return context
 
 
 @login_required
@@ -98,41 +144,6 @@ def add_comment(request):
         result = 0
     return {"commenter_info":commenter_info,"result":result,"post_id":post_id,"image_pic":image_pic}
 
-
-def chat(request,label):
-    room = Room.objects.get(label=label)
-    message = reversed(room.messages.order_by('-date_send')[:50])
-    context = {"room":room,"message":message}
-    return render(request,"feed/chat.html",context=context)
-
-
-@login_required
-def new_chat(request):
-    profiles =  request.user.profile.subscribers.all()
-    context = {
-    'profiles':profiles
-    }
-    return render(request,'feed/new_chat.html',context=context)
-
-
-@login_required
-def inbox(request):
-    inbox = Room.objects.filter(Q(reciever=request.user)|Q(sender=request.user))
-    context = {
-    "inbox":inbox
-    }
-    return render(request,"feed/inbox.html",context=context)
-
-@login_required
-def chat_create(request,username):
-    user_to_message = User.objects.get(username=username)
-    room_label = request.user.username+'_'+user.username
-    try:
-        does_room_exist = Room.objects.get(label=label)
-    except:
-        room = Room(label,reciever=user_to_message,sender=request.user)
-        room.save()
-    return redirect('chat',label=room_label)
 
 @login_required
 @ajax_request
@@ -183,71 +194,53 @@ def add_like(request):
     return context
 
 
-def profile(request,pk):
-    profile = Profile.objects.get(id=pk)
-    post = Post.objects.filter(profile__id=pk)
-    print(request.user.profile)
-#    is_subscribed = False
-    is_subscribed = True if request.user.profile in profile.subscribers.all() else False
-    print(is_subscribed)
-    print(profile)
-    context = {"profile":profile,"post":post,"is_subscribed":is_subscribed}
-    return render(request,"profile/profile.html",context=context)
+class ProfileView(View,LoginRequiredMixin):
+    template_name = "instagram_profile/profile/profile.html"
+
+    def get(self,request,*args,**kwargs):
+        pk = self.kwargs.get('pk')
+        profile = Profile.objects.get(id=pk)
+        post = Post.objects.filter(profile__id=pk)
+        is_subscribed = True if request.user.profile in profile.subscribers.all() else False
+        context = {"profile":profile,"post":post,"is_subscribed":is_subscribed}
+        return render(request,self.template_name,context=context)
 
 
-def subscribers_list(request,username):
-    profile = Profile.objects.get(user=User.objects.get(username=username))
-    subscribers = profile.subscribers.all()
-    context={"subscribers":subscribers}
-    return render(request,"subscribers/subscribers_list.html",context=context)
+class SubscribersView(View,LoginRequiredMixin):
+    template_name = "instagram_profile/subscribers/subscribers_list.html"
+
+    def get(self,request,username):
+        profile = Profile.objects.get(user=User.objects.get(username=username))
+        subscribers = profile.subscribers.all()
+        context={"subscribers":subscribers}
+        return render(request,self.template_naem,context=context)
 
 
-def followers_list(request,username):
-    profile = Profile.objects.get(user=User.objects.get(username=username))
-    followers = profile.followers.all()
-    context = {"followers":followers}
-    return render(request,"followers/followers_list.html",context=context)
+class FollowersView(View,LoginRequiredMixin):
+    template_name = "instagram_profile/followers/followers_list.html"
+    def get(self,request,username):
+        profile = Profile.objects.get(user=User.objects.get(username=username))
+        followers = profile.followers.all()
+        context = {"followers":followers}
+        return render(request,self.template_name,context=context)
 
 
-def profile_list(request):
-    profile_to_list = Profile.objects.all()
-    context = {"profile_to_list":profile_to_list}
-    return render(request,"profile/profile_list.html",context=context)
+class ProfileListView(ListView,LoginRequiredMixin):
+    model = Profile
+    template_name = "instagram_profile/profile/profile_list.html"
+    context_object_name = 'profile_to_list'
+
+    def get_context_data(self,**kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 
-def feed(request):
-    profile = Profile.objects.get(user=request.user.id)
-    subscribers = profile.followers.all()
-    posts = Post.objects.filter(profile__in=subscribers).order_by("created_at")
-    context = {"posts":posts}
-    return render(request,"feed/feed.html",context=context)
+class FeedView(View,LoginRequiredMixin):
+    template_name = "instagram_profile/feed/feed.html"
 
-
-def registerPage(request):
-    #form = SignUpForm()
-    if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            Profile.objects.create(user=user)
-            return redirect("login")
-    else:
-        form = SignUpForm()
-    context = {"form":form}
-    return render(request,"authorization/register.html",context=context)
-
-
-def loginPage(request):
-    if request.method=="POST":
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data["username"]
-            password = form.cleaned_data["password"]
-            user = authenticate(username=username,password=password)
-            if user is not None:
-                login(request,user)
-                return redirect("profile_list")
-    else:
-        form = LoginForm()
-    context = {"form":form}
-    return render(request,"authorization/login.html",context=context)
+    def get(self,request):
+        profile = Profile.objects.get(user=request.user.id)
+        subscribers = profile.followers.all()
+        posts = Post.objects.filter(profile__in=subscribers).order_by("created_at")
+        context = {"posts":posts}
+        return render(request,self.template_name,context=context)

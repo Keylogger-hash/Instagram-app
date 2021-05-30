@@ -5,7 +5,9 @@ from imagekit.models import ProcessedImageField
 from imagekit.processors import ResizeToFill
 from datetime import datetime
 from django.urls import reverse
+
 # Create your models here.
+
 class Profile(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     followers = models.ManyToManyField('Profile',related_name='profile_followers',blank=True)
@@ -29,6 +31,7 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
+
 
 
 class Post(models.Model):
@@ -77,20 +80,3 @@ class Image(models.Model):
 
     def __str__(self):
         return str(self.id)
-
-
-class Room(models.Model):
-    label = models.SlugField(unique=True)
-    sender = models.ForeignKey(User,related_name='sender',on_delete=models.CASCADE)
-    reciever = models.ForeignKey(User,related_name='reciever',on_delete=models.CASCADE)
-
-    def get_last_message(self):
-        message = Message.objects.filter(room=self.id).last()
-        return message.text if message != "" else message
-
-
-class Message(models.Model):
-    room = models.ForeignKey(Room,related_name="messages",on_delete=models.CASCADE)
-    sender = models.ForeignKey(User,on_delete=models.CASCADE)
-    text = models.TextField()
-    date_send = models.DateTimeField(default=datetime.now,db_index=True)

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{%load static%}
+{% block content %}
+<h1>Chat</h1>
+{%if is_message%}
+<ul>
+{% for m in message %}
+{{m.sender}}
+  <li>{{m.text}}</li>
+{% endfor %}
+</ul>
+{%else%}
+<p>Welcome to the chat</p>
+{%endif%}
+<textarea id="chat-log" cols="100" rows="20" value="{{room.label}}"></textarea><br>
+<input id="chat-message-input" type="text" size="100"><br>
+<input id="chat-message-submit" onclick='javascript:alert(1);try{showOld()}catch(e){alert(e)}' value="submit" type="button">
+{%endblock%}
+{%block javascript%}
+<script>
+
+var room_label = document.getElementById("chat-log").getAttribute('value')
+var connectionString = 'ws://'+window.location.host+'/ws/chat/'+room_label+'/'
+var socket = new WebSocket(connectionString);
+socket.onopen = function(event){
+  console.log('socket is connected');
+}
+socket.onclose = function(event){
+  console.log('socket is disconnected');
+}
+socket.onmessage  = function(event){
+  console.log("socket on onmessage")
+  const data = JSON.parse(event.data);
+  document.querySelector("#chat-log").value += (data.message+'\n');
+
+}
+
+document.querySelector("#chat-message-input").onclick = function(e){
+  const messageElement = document.querySelector("#chat-message-input")
+  const message = messageElement.value
+  socket.send(JSON.stringify({"message":message}))
+  messageElement.value=""
+}
+
+
+</script>
+
+{%endblock javascript%}

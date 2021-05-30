@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+#instagram sdlk#(@@dsfjklsS
 from pathlib import Path
 import os
 
@@ -27,7 +27,8 @@ SECRET_KEY = 'kflqqkz__cege9ib8861-d)&z2l@7i#84b7g-l(-hw#l1i)i3r'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+#Celery
+CELERY_BROKER_URL = 'amqp://localhost'
 
 # Application definition
 
@@ -40,6 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'instagram_profile',
+    'accounts',
+    'chat',
+    'api',
     'imagekit',
     'channels_redis',
     'django_filters',
@@ -62,7 +66,9 @@ ROOT_URLCONF = 'instagram.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+        os.path.join(BASE_DIR,'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -98,16 +104,13 @@ CHANNEL_LAYERS = {
 #     }
 # }
 DATABASES = {
-       'default': {
-       'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'instagram_app', # example - blog_data
-        'USER': 'instagram',
-        'PASSWORD': '123',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-        'charset': 'utf8mb4',
-        'use_unicode': True, },
+    'default':{
+    'ENGINE':'django.db.backends.postgresql',
+    'NAME':'<DATABASE_NAME>',
+    'USER':'<DATABASE_USERNAME>',
+    'PASSWORD':'<DATABASE_PASSWORD>',
+    'HOST':'localhost',
+    'PORT':'5432'
     },
 }
 
@@ -128,7 +131,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+#Email backend
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = '<EMAIL_USER>'
+EMAIL_HOST_PASSWORD = '<EMAIL_PASSWORD>'
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/

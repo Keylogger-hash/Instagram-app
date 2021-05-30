@@ -21,5 +21,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("",include("instagram_profile.urls"))
+    path("",include("instagram_profile.urls",namespace="instagram_profile")),
+    path("",include("accounts.urls",namespace="account")),
+    path("",include("chat.urls",namespace="chat")),
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

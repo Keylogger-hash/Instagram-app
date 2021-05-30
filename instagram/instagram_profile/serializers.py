@@ -2,13 +2,18 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from instagram_profile.models import Profile
-from instagram_profile.models import Image,Post
+from instagram_profile.models import Image,Post,Comment
 from django.contrib.auth.models import User
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ("text")
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model=User
-        fields=("username","first_name","last_name")
+        model = User
+        fields = ("username","first_name","last_name")
 
 class ProfileListSerializer(serializers.ModelSerializer):
     user = UserSerializer()
