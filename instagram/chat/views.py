@@ -19,15 +19,6 @@ def chat(request,label):
     return render(request,"chat/chat.html",context=context)
 
 
-# @login_required
-# def new_chat(request):
-#     profiles =  request.user.profile.subscribers.all()
-#     context = {
-#     'profiles':profiles
-#     }
-#     return render(request,'chat/new_chat.html',context=context)
-
-
 @login_required
 def inbox(request):
     inbox = Room.objects.filter(Q(reciever=request.user)|Q(sender=request.user))

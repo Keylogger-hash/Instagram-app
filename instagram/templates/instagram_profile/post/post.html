@@ -11,9 +11,9 @@
   <p>Like: <strong id="like-count">{{post.get_count_of_likes}}</strong></p>
   <form id="like-form">
     {%if is_liked%}
-    <button type="submit" id="like" class="like_" name="post_id" value="{{post.id}}">Unlike</button>
+    <button type="submit" id="like" class="unlike_" name="post_id" value="{{post.id}}">Unlike</button>
     {%else%}
-    <button type="submit" id="like" class="unlike_" name="post_id" value="{{post.id}}">Like</button>
+    <button type="submit" id="like" class="like_" name="post_id" value="{{post.id}}">Like</button>
   {%endif%}
   </form>
 </div>
@@ -37,67 +37,81 @@
 $(document).ready(function(){
   $('#like-form').submit(function(e){
     event.preventDefault();
-    console.log("from jquery section")
     var pk = $('#like').val();
-    $.ajax({
-      type:'post',
-      url:"{%url 'instagram_profile:add_like' %}",
-      data:{
-        'post_id':pk,
-        'csrfmiddlewaretoken': '{{ csrf_token }}'
-      },
-      dataType:'json',
-      success:function(response) {
-        if ($("#like").attr('class')==="like_") {
-          $("#like").html("Like").removeClass("like_").addClass("unlike_")
-        } else {
-          $("#like").html("Unlike").removeClass("unlike_").addClass("like_")
+    var user = String({{request.user.id}});
+    if ($("#like").attr('class')==="like_"){
+      $.ajax({
+        type:'post',
+        url:"{%url 'api:add_like' %}",
+        data:{
+          'post':pk,
+          'user':user,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        dataType:'json',
+        success:function(response) {
+          $("#like").html("Unlike").removeClass("like_").addClass("unlike_")
+          $("#like-count").html(response["total_likes"])
+        },
+        error:function(response,e){
+          console.log(response.responseText)
         }
-        $("#like-count").html(response["total_likes"])
-      },
-      error:function(response,e){
-        console.log(response.responseText)
-      }
-    })
+      })
+    } else {
+      $.ajax({
+        type:'delete',
+        url: `{%url 'api:delete_like' post_id=post.id user_id=user.id%}`,
+        data:{},
+        dataType:'json',
+        success:function(response) {
+          $("#like").html("Like").removeClass("unlike_").addClass("like_")
+          $("#like-count").html(response["total_likes"])
+        },
+        error:function(response,e){
+          console.log(response.responseText)
+        }
+      })
+    }
+
   })
 })
 </script>
-
+<script type="text/javascript">window.CSRF_TOKEN = "{{ csrf_token }}";</script>
 <script>
 $(document).ready(function(){
   $("#form-comments").submit(function(e) {
     e.preventDefault();
     var comment_text = $("#id_comment_text").val();
+    var user = String({{request.user.id}});
     var post_id = $("#post_id").val();
+
     $.ajax({
       type:'POST',
-      url:"{%url 'instagram_profile:comments' %}",
+      url:"{%url 'api:add_comment' %}",
       data:{
-        "comment_text":comment_text,
-        "post_id":post_id,
-        csrfmiddlewaretoken:'{{csrf_token}}'
+        "text":comment_text,
+        "user":user,
+        "post":post_id,
+        csrfmiddlewaretoken: '{{ csrf_token }}'
       },
       success: function(response) {
         $('#form-comments').trigger('reset');
         $("#comment_text").focus();
-
         $("#my_comments").append(
           `<p>
-          <img src="${response["image_pic"]}" width="50" height="50"></img>
-          <strong>${response["commenter_info"]["username"]}</strong> ${response["commenter_info"]["comment_text"]}
+            <img src="${response["image_pic"]}" width="50" height="50"></img>
+            <strong>${response["username"]}</strong> ${response["comment_text"]}
           </p>`
-        )
-      }
+          )
+        }
     })
-
   })
 })
 </script>
 <script>
 let counter = -1;
 let current=1
-
-fetch("http://127.0.0.1:8000/api/image/{{post.profile.id}}/{{post.id}}")
+fetch("{% url 'api:image_view' post.profile.id post.id%}")
   .then((response) => {
     return response.json();
   })

@@ -24,4 +24,5 @@ urlpatterns = [
     path("",include("instagram_profile.urls",namespace="instagram_profile")),
     path("",include("accounts.urls",namespace="account")),
     path("",include("chat.urls",namespace="chat")),
+    path("api/",include("api.urls",namespace="api"))
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

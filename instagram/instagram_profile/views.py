@@ -2,18 +2,11 @@ from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth.models import User
 from instagram_profile.models import Profile,Image,Post, Comment, Like
 from instagram_profile.forms import AddPostForm,UpdateProfileForm,UsernameForm
-from instagram_profile.serializers import ImageSerializer
-
 from django.db.models import Q
-
 from django.contrib.auth.decorators import login_required
-
-#for ajax
-from annoying.decorators import ajax_request
-from rest_framework import generics
-
+#for ajax,api
+#HttpResponses,reverse
 from django.http import HttpResponse
-
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 #Views
@@ -28,7 +21,7 @@ def index(request):
         return HttpResponseRedirect(reverse("instagram_profile:feed"))
     else:
         return HttpResponseRedirect(reverse("accounts:login"))
-#
+
 
 class UpdateProfileView(LoginRequiredMixin,UpdateView):
     model = Profile
@@ -60,8 +53,6 @@ class UpdateProfileView(LoginRequiredMixin,UpdateView):
         user = get_object_or_404(self.second_model,id=int(pk))
         profile_form = self.form_class(instance=profile,data=request.POST,files=request.FILES)
         username_form = self.second_form_class(instance=user,data=request.POST)
-        print(profile_form.is_valid())
-        print(username_form.is_valid())
         if profile_form.is_valid() and username_form.is_valid():
             profile_form.save()
             username_form.save()
@@ -86,7 +77,6 @@ class AddPostView(View,LoginRequiredMixin):
             text = form.cleaned_data["text"]
             first_image = form.cleaned_data["first_image"]
             attachments = self.request.FILES.getlist("attachments")
-            print(attachments)
             post = Post(profile=profile,text=text,first_image=first_image)
             post.save()
             for im in attachments:
@@ -94,14 +84,8 @@ class AddPostView(View,LoginRequiredMixin):
             return HttpResponseRedirect(reverse('instagram_profile:post',args=(profile.id,post.id)))
 
 
-class ImageView(generics.ListAPIView):
-    serializer_class = ImageSerializer
 
-    def get_queryset(self):
-        post_id = self.kwargs['post_id']
-        profile_id = self.kwargs['profile_id']
-        queryset = Image.objects.filter(post__id=post_id,post__profile__id=profile_id)
-        return queryset
+
 
 class PostView(DetailView):
     model = Post
@@ -125,83 +109,15 @@ class PostView(DetailView):
         return context
 
 
-@login_required
-@ajax_request
-def add_comment(request):
-    user = request.user
-    image_pic = request.user.profile.image_pic.url
-    username = request.user.username
-    text = request.POST.get("comment_text")
-    post_id = request.POST.get("post_id")
-
-    try:
-        comment = Comment(user=user,text=text,post_id=post_id)
-        comment.save()
-        commenter_info = {"comment_text":text,"username":username}
-        result = 1
-    except Exception as e:
-        print(e)
-        result = 0
-    return {"commenter_info":commenter_info,"result":result,"post_id":post_id,"image_pic":image_pic}
-
-
-@login_required
-@ajax_request
-def subscribe(request):
-    profile_id = request.POST.get('profile_id') # профиль человека на который подписываются (subscriber)
-    user = request.user # человек который хочет подписаться или отписаться (follower)
-    # что надо если:
-    #     1. Если человек не подписан, то надо добавить подписчика к Тому профилю на который подписались, и подписку к человеку который подписался.
-    #     2. Если человек подписан и хочет отписаться, то нужно соответственно удалить.
-    # Как проверить кто подписан?
-    subscriber = Profile.objects.get(id=profile_id)
-    follower = Profile.objects.get(id=user.id)
-    is_subscribed = True if request.user.profile in subscriber.subscribers.all() else False
-    if is_subscribed==True:
-        subscriber.subscribers.remove(follower)
-        follower.followers.remove(subscriber)
-        is_subscribed = False
-    else:
-        subscriber.subscribers.add(follower)
-        follower.followers.add(subscriber)
-        is_subscribed = True
-    context = {
-    "subscriber_count":subscriber.get_count_of_subscribers(),
-    "is_subscribed":is_subscribed
-    }
-    return context
-
-
-@login_required
-@ajax_request
-def add_like(request):
-    post = get_object_or_404(Post,id=request.POST.get('post_id'))
-    user = request.user
-    post_id = request.POST.get('post_id')
-    is_liked = False
-    if Like.objects.filter(post_id=post_id,user=user).exists():
-        like = Like.objects.get(user=user,post_id=post_id)
-        like.delete()
-        is_liked = False
-    else:
-        like = Like(user=user,post_id=post_id)
-        like.save()
-        is_liked = True
-    context = {
-    'is_liked':is_liked,
-    'total_likes':post.get_count_of_likes()
-    }
-    return context
-
-
 class ProfileView(View,LoginRequiredMixin):
     template_name = "instagram_profile/profile/profile.html"
 
     def get(self,request,*args,**kwargs):
         pk = self.kwargs.get('pk')
         profile = Profile.objects.get(id=pk)
+        follower = request.user.profile
         post = Post.objects.filter(profile__id=pk)
-        is_subscribed = True if request.user.profile in profile.subscribers.all() else False
+        is_subscribed = True if follower in profile.subscribers.all() else False
         context = {"profile":profile,"post":post,"is_subscribed":is_subscribed}
         return render(request,self.template_name,context=context)
 
@@ -213,11 +129,12 @@ class SubscribersView(View,LoginRequiredMixin):
         profile = Profile.objects.get(user=User.objects.get(username=username))
         subscribers = profile.subscribers.all()
         context={"subscribers":subscribers}
-        return render(request,self.template_naem,context=context)
+        return render(request,self.template_name,context=context)
 
 
 class FollowersView(View,LoginRequiredMixin):
     template_name = "instagram_profile/followers/followers_list.html"
+
     def get(self,request,username):
         profile = Profile.objects.get(user=User.objects.get(username=username))
         followers = profile.followers.all()

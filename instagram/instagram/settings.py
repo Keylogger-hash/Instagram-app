@@ -94,23 +94,14 @@ CHANNEL_LAYERS = {
     },
 }
 
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 DATABASES = {
     'default':{
     'ENGINE':'django.db.backends.postgresql',
     'NAME':'<DATABASE_NAME>',
-    'USER':'<DATABASE_USERNAME>',
+    'USER':'<DATABASE_USER>',
     'PASSWORD':'<DATABASE_PASSWORD>',
-    'HOST':'localhost',
-    'PORT':'5432'
+    'HOST':'<DATABASE_LOCALHOST>',
+    'PORT':'<DATABASE_PORT>'
     },
 }
 
