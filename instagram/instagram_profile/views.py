@@ -84,9 +84,6 @@ class AddPostView(View,LoginRequiredMixin):
             return HttpResponseRedirect(reverse('instagram_profile:post',args=(profile.id,post.id)))
 
 
-
-
-
 class PostView(DetailView):
     model = Post
     template_name = "instagram_profile/post/post.html"

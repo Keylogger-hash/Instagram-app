@@ -19,6 +19,8 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 #http object
 from django.http import Http404
+# Session authentication
+from rest_framework.authentication import SessionAuthentication
 # Create your views here.
 class ImageView(ListAPIView):
     serializer_class = ImageSerializer
@@ -145,7 +147,6 @@ class CreateSubscribeView(APIView,BaseSubscribeView):
             return Response(context,status=status.HTTP_201_CREATED)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-from rest_framework.authentication import SessionAuthentication
 
 class UnsafeSessionAuthentication(SessionAuthentication):
 

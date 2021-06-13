@@ -81,7 +81,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'instagram.wsgi.application'
+#WSGI_APPLICATION = 'instagram.wsgi.application'
 ASGI_APPLICATION = 'instagram.asgi.application'
 CORS_ORIGIN_ALLOW_ALL=True
 
@@ -98,10 +98,10 @@ DATABASES = {
     'default':{
     'ENGINE':'django.db.backends.postgresql',
     'NAME':'<DATABASE_NAME>',
-    'USER':'<DATABASE_USER>',
-    'PASSWORD':'<DATABASE_PASSWORD>',
-    'HOST':'<DATABASE_LOCALHOST>',
-    'PORT':'<DATABASE_PORT>'
+    'USER':'<USER>',
+    'PASSWORD':'<PASSWORD>',
+    'HOST':'<HOST>',
+    'PORT':'<PORT>'
     },
 }
 

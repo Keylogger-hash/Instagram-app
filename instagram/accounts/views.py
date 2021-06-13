@@ -104,6 +104,8 @@ class LoginView(View):
             if user is not None:
                 login(request,user)
                 return HttpResponseRedirect(reverse("instagram_profile:feed"))
+            else:
+                return HttpResponseRedirect(reverse("accounts:login"))
 
 class LogoutView(View):
     template_name = ""

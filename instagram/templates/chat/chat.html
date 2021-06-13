@@ -14,35 +14,36 @@
 {%endif%}
 <textarea id="chat-log" cols="100" rows="20" value="{{room.label}}"></textarea><br>
 <input id="chat-message-input" type="text" size="100"><br>
-<input id="chat-message-submit" onclick='javascript:alert(1);try{showOld()}catch(e){alert(e)}' value="submit" type="button">
+<input id="chat-message-submit" value="submit" type="button">
 {%endblock%}
 {%block javascript%}
 <script>
-
 var room_label = document.getElementById("chat-log").getAttribute('value')
 var connectionString = 'ws://'+window.location.host+'/ws/chat/'+room_label+'/'
 var socket = new WebSocket(connectionString);
 socket.onopen = function(event){
   console.log('socket is connected');
 }
+
 socket.onclose = function(event){
   console.log('socket is disconnected');
 }
+
 socket.onmessage  = function(event){
   console.log("socket on onmessage")
+  console.log(event)
   const data = JSON.parse(event.data);
-  document.querySelector("#chat-log").value += (data.message+'\n');
-
+  document.querySelector("#chat-log").value += (data.sender+'\n'+data.text+'\n');
 }
 
-document.querySelector("#chat-message-input").onclick = function(e){
+document.querySelector("#chat-message-submit").onclick = function(e){
   const messageElement = document.querySelector("#chat-message-input")
+  console.log(room_label)
   const message = messageElement.value
-  socket.send(JSON.stringify({"message":message}))
+  console.log(messageElement)
+  console.log(message)
+  socket.send(JSON.stringify({"message":message,"sender":"{{request.user.username}}","room_label":"{{room.label}}"}))
   messageElement.value=""
 }
-
-
 </script>
-
 {%endblock javascript%}
